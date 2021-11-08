@@ -1,22 +1,24 @@
 library(rvest)
 library(polite)
-
+library(RPostgres)
 
 days_out <- 7
+db <- dbConnect(RPostgres::Postgres(), dbname = "rsql", user = "jat")
 
 Fetch <- function(x){
-     bow(x, user_agent = "sorry - https://github.com//RaEVEr",
-     delay = 5,
+     bow(x, user_agent = "https://github.com/rawhax/RaEVEr",
+     delay = 2,
      force = TRUE)%>%
      scrape(content="text/html; charset=UTF-8") %>%
      html_table
   }
 
 Tear <- function(x){
-      bow(x, user_agent = "sorry - https://github.com//RaEVEr",
-      delay = 5,
+      bow(x, user_agent = "https://github.com/rawhax/RaEVEr",
+      delay = 2,
       force = TRUE)%>%
       rip(path = "E:/RaEVE/csv")
+      
 }
 
 date_list    <- tibble("date" = as.character(seq.Date(Sys.Date(), by = "-1 day", length.out = days_out)), 
@@ -25,7 +27,13 @@ date_list    <- tibble("date" = as.character(seq.Date(Sys.Date(), by = "-1 day",
 csv_uri <- tibble("uri" = paste0("https://data.everef.net/market-orders/history/", date_list$year ,"/", date_list$date, "/"),
                   "date" = date_list$date)
 
-csv_files   <- tibble(csv = as.character(dir_ls(path = "E:/RaEVE/csv", regexp = "\\.csv.bz2$")))
+csv_files   <- tibble(csv = as.character(fs::dir_ls(path = "E:/RaEVE/csv", regexp = "\\.csv.bz2$")))
+dbListTables(db) %>% 
+  gsub("_", "-", .) %>% 
+  gsub("x", "_", .)  %>% 
+  sub("$",".v3.csv.bz2", .) %>% 
+  tibble(csv = .) -> csv_files
+  
 
 
 #this is where downloadin happens
@@ -39,3 +47,5 @@ csv_files   <- tibble(csv = as.character(dir_ls(path = "E:/RaEVE/csv", regexp = 
   url_master <- paste0(csv_master$uri,csv_master$csv)
   #do the downloadin
 map(url_master,Tear) 
+
+
